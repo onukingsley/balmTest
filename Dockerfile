@@ -1,25 +1,28 @@
-FROM richarvey/nginx-php-fpm:3.1.6
+FROM php:8.2-fpm
 
-ENV WEBROOT /var/www/html/public
-ENV SKIP_COMPOSER 1
-ENV PHP_ERRORS_STDERR 1
-ENV RUN_SCRIPTS 1
-ENV REAL_IP_HEADER 1
+RUN apt-get update && apt-get install -y \
+    nginx \
+    supervisor \
+    git \
+    unzip \
+    libpq-dev
 
-ENV APP_ENV=production
-ENV APP_DEBUG=false
+RUN docker-php-ext-install pdo pdo_pgsql
 
-COPY . /var/www/html
+WORKDIR /var/www
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+COPY . .
 
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www
 
-RUN php artisan storage:link
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Copy configuration files
-COPY supervisord.conf /etc/supervisord.conf
-COPY nginx.conf /etc/nginx/http.d/default.conf
+RUN curl -sS https://getcomposer.org/installer | php -- \
+    --install-dir=/usr/local/bin --filename=composer
 
-# The image already runs supervisord by default when RUN_SCRIPTS=1
+RUN composer install --no-dev --optimize-autoloader
+
+EXPOSE 80
+
+CMD ["/usr/bin/supervisord"]
