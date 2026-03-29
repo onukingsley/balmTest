@@ -2,21 +2,24 @@
 
 echo "=== Laravel Deploy Script Starting ==="
 
-# Generate APP_KEY if not present
+# Generate key if missing
 if [ -z "$APP_KEY" ]; then
-  echo "Generating APP_KEY..."
   php artisan key:generate --force
 fi
 
 echo "Running migrations..."
 php artisan migrate --force
 
-echo "Caching config, routes and views..."
+echo "Caching Laravel..."
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-echo "Linking storage..."
+echo "Storage link..."
 php artisan storage:link
 
-echo "=== Laravel Deploy Script Completed ==="
+echo "=== Laravel Deploy Script Finished ==="
