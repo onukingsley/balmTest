@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\OrderPlaced;
 use App\Models\Brand;
 use App\Models\Cart;
 use App\Models\Category;
@@ -12,6 +13,7 @@ use App\Models\Review;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+
 
 class UserController extends Controller
 {
@@ -57,6 +59,7 @@ class UserController extends Controller
                 'order' => $sortedOrder->groupBy('invoice_number'),
                 'cancelledOrder' => $sortedOrder->where('status','cancelled')->groupBy('invoice_number')->sortByDesc('created_at'),
                 'PendingOrder' => $sortedOrder->where('status','processing')->groupBy('invoice_number'),
+                'ConfirmedOrder' => $sortedOrder->where('status','confirmed')->groupBy('invoice_number'),
                 'Delivered' => $sortedOrder->where('status','delivered')->groupBy('invoice_number'),
                 'complaint' => $user->complaint,
                 'response' => $user->complaint->flatMap->response
@@ -131,6 +134,8 @@ class UserController extends Controller
     /*Add product to Cart*/
     public function addCart(Request $request){
 
+        //event(new OrderPlaced('finally'));
+
         $req = $request->all();
 
         /*return response($req);*/
@@ -143,6 +148,7 @@ class UserController extends Controller
                 ['product_id',$req['product_id']]
             ])->first();
 
+
             if ($checkCart){
                 $checkCart->update(['quantity'=>$checkCart['quantity'] + $req['quantity']]);
                 return response()->json(['message'=>'Product quantity has been updated','data' =>$checkCart],200);
@@ -153,6 +159,8 @@ class UserController extends Controller
                     'quantity' => $req['quantity'],
                 ];
                 $cart = Cart::create($payload);
+
+
 
                 return response()->json(['message'=>"{$product->title} added to Cart ",'data'=>$cart],200);
             }

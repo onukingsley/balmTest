@@ -23,6 +23,7 @@ Route::post('/register',[Authentication::class,'register']);
 /*User Page Routes*/
 Route::get('/getProduct',[UserController::class,'getProduct']);
 Route::get('/getOverallIndex',[UserController::class,'getOverallIndex'])->middleware('auth:sanctum');
+Route::get('/getOverallIndex',[UserController::class,'getOverallIndex'])->middleware('auth:sanctum');
 Route::post('/addCart',[UserController::class,'addCart'])->middleware('auth:sanctum');
 Route::post('/updateCart',[UserController::class,'updateCart'])->middleware('auth:sanctum');
 Route::post('/deleteCart',[UserController::class,'deleteCart'])->middleware('auth:sanctum');

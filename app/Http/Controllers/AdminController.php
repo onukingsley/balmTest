@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\OrderConfirmed;
 use App\Models\Brand;
 use App\Models\Cart;
 use App\Models\Category;
@@ -21,6 +22,8 @@ class AdminController extends Controller
         complaint, pendingComplaint, reviews, users
     */
     public function getOverallAdmin(){
+
+
 
         try {
             $products = Product::with(['review','category','brand'])->get();
@@ -44,7 +47,8 @@ class AdminController extends Controller
 
             $cancelledOrder = $orders->where('status','cancelled')->groupBy('invoice_number');
             $pendingOrder = $orders->where('status','processing')->groupBy('invoice_number');
-            $pendingAndDelivered = $orders->whereIn('status',['processing','delivered'])->groupBy('invoice_number');
+            $confirmedOrder = $orders->where('status','confirmed')->groupBy('invoice_number');
+            $pendingAndDelivered = $orders->whereIn('status',['confirmed','delivered'])->groupBy('invoice_number');
             $delivered = $orders->where('status','delivered')->groupBy('invoice_number');
             $awaitRefund = $orders->where('refund','1')->where('status','cancelled')->groupBy('invoice_number');
 
@@ -78,6 +82,7 @@ class AdminController extends Controller
                 'orders' => $userOrder,
                 'productInCart' => $productInCart,
                 'pendingOrder' => $pendingOrder,
+                'confirmedOrder' => $confirmedOrder,
                 'deliveredOrder' => $delivered,
                 'cancelledOrder' => $cancelledOrder,
                 'awaitingRefund' =>$awaitRefund,
@@ -224,8 +229,14 @@ class AdminController extends Controller
         ];
 
         try {
-            $order = Order::where('invoice_number',$req['order_id'])->update($payload);
-            return response()->json(['message'=>"Order has been updated", 'data'=> $order],200);
+            $orders = tap(Order::where('invoice_number',$req['order_id']))->update($payload)->get();
+
+            if ($req['status'] == 'confirmed'){
+                broadcast(new OrderConfirmed($req['user_id'],$orders))->toOthers();
+            }
+
+
+            return response()->json(['message'=>"Order has been updated", 'data'=> $orders],200);
 
         }catch (\Exception $exception){
             return response()->json(['message'=>"Failed to update order at this moment"]);
@@ -340,7 +351,7 @@ class AdminController extends Controller
         }
 
         try {
-            $brand = Brand::where('id',$req['category_id'])->first();
+            $brand = Brand::where('id',$req['brand_id'])->first();
 
             $brand_image = $brand->brand_image;
 
@@ -437,9 +448,8 @@ class AdminController extends Controller
         $req = $request->all();
 
 
-
         try {
-            $deleteBrand = Brand::where('id',$req['product_id'])->first();
+            $deleteBrand = Brand::where('id',$req['brand_id'])->first();
 
             if ($deleteBrand){
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\OrderPlaced;
 use App\Models\Cart;
 use App\Models\Order;
 use Illuminate\Http\Request;
@@ -58,6 +59,20 @@ class PaystackController extends Controller
 
                 $cart->delete();
             }
+            $eventPayload = [
+                'user_id' => $req['user_id'],
+                'transaction_id' => $confirmPayment['data']['id'],
+                'invoice_number' => $invoice_id,
+                'total_price' => $confirmPayment['data']['amount']/100,
+                'delivery_address' => $req['address'],
+            ];
+            $recentOrder = Order::with(['product','user'])->where('invoice_number',$invoice_id)->get();
+
+
+            /*return response($recentOrder);*/
+
+            broadcast(new OrderPlaced($recentOrder))->toOthers();
+        /*    return response($newOrder[$invoice_id]);*/
 
             return redirect(env('FRONT_END_URL')."/checkout?reference={$req['reference']}&status=success&tnxId={$invoice_id}");
         }
