@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Events\OrderConfirmed;
+use App\Events\OrderDelivered;
+use App\Events\Refund;
 use App\Models\Brand;
 use App\Models\Cart;
 use App\Models\Category;
@@ -234,12 +236,17 @@ class AdminController extends Controller
             if ($req['status'] == 'confirmed'){
                 broadcast(new OrderConfirmed($req['user_id'],$orders))->toOthers();
             }
+            if ($req['status'] == 'delivered'){
+                broadcast(new OrderDelivered($req['user_id'],$orders))->toOthers();
+            }
+
+
 
 
             return response()->json(['message'=>"Order has been updated", 'data'=> $orders],200);
 
-        }catch (\Exception $exception){
-            return response()->json(['message'=>"Failed to update order at this moment"]);
+        }catch (Exception $exception){
+            return response()->json(['message'=>"Failed to update order at this moment","error"=>$exception]);
 
         }
 
@@ -252,7 +259,9 @@ class AdminController extends Controller
         ];
 
         try {
-            $order = Order::where('invoice_number',$req['order_id'])->update($payload);
+            $order = tap(Order::where('invoice_number',$req['order_id']))->update($payload)->get();
+            broadcast(new Refund($req['user_id'],$order))->toOthers();
+
             return response()->json(['message'=>"Order has been updated", 'data'=> $order],200);
 
         }catch (\Exception $exception){

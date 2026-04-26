@@ -12,6 +12,14 @@ Broadcast::channel('ord', function () {
     return true; // Adjust authorization logic as needed
 });
 
+Broadcast::channel('ordCancel', function () {
+    return true; // Adjust authorization logic as needed
+});
+
+Broadcast::channel('ordDelivered', function () {
+    return true; // Adjust authorization logic as needed
+});
+
 Broadcast::channel('ordConfirmed{userId}', function ($user, $userId) {
     // Debug: Log to see if this is being called
     \Log::info('Authorizing channel', [

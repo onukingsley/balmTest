@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\OrderCanelled;
 use App\Events\OrderPlaced;
 use App\Models\Brand;
 use App\Models\Cart;
@@ -298,14 +299,16 @@ class UserController extends Controller
 
 
         try {
-            $order = Order::where('invoice_number',$req['invoice_number'])->update([
+            $order = tap(Order::where('invoice_number',$req['invoice_number']))->update([
                 'status' => $req['status'],
                 'refund'=> 1
-            ]);
+            ])->get();
 
             $user  = User::where('id',$req['user_id'])->update([
                'account_number' => $req['account']
             ]);
+
+            broadcast(new OrderCanelled($req['user_id'],$order))->toOthers();
 
             return response()->json(['message' => "Your order has been {$req['status']}", 'data' => $order],200);
 
